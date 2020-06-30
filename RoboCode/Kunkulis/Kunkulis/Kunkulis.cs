@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Robocode;
 
 namespace ARE
@@ -6,6 +6,9 @@ namespace ARE
     public class Kunkulis : Robot
     {
         Random rnd = new Random();
+        double previousEnergy = 100;
+        int movementDirection = 1;
+        int gunDirection = 1;
         public override void Run()
         {
             double height = this.BattleFieldHeight;
@@ -15,11 +18,11 @@ namespace ARE
 
             while (true)
             {
-                
+
                 int turn = rnd.Next(10, 181);
                 double horiz = rnd.Next(0, Convert.ToInt32(width));
                 double vertic = rnd.Next(0, Convert.ToInt32(height));
-                
+
                 int direction = rnd.Next(1, 3);
 
                 if (direction == 1)
@@ -42,15 +45,25 @@ namespace ARE
         }
 
         public override void OnScannedRobot(ScannedRobotEvent e)
-        {            
-            if (Energy => 75)
+        {
+            TurnRight(e.Bearing + 90 - 30 * movementDirection);
+
+            double changeInEnergy = previousEnergy - e.Energy;
+            if (changeInEnergy > 0 && changeInEnergy <= 3)
             {
-                Fire(1);
-
+                movementDirection = -movementDirection;
+                Ahead((e.Distance / 4 + 25) * movementDirection);
             }
+
+            gunDirection = -gunDirection;
+            TurnGunRight(99999 * gunDirection);
+            //if (Energy => 75)
+            //{
+            Fire(2);
+
+            previousEnergy = e.Energy;
+
+            //}
         }
-
-
-
     }
 }
