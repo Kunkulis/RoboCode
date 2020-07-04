@@ -132,6 +132,11 @@ namespace ARE
             SetTurnRight(e.Bearing + 135);
             SetAhead(200);
         }
+        public override void OnHitByBullet(HitByBulletEvent e)
+        {
+            SetTurnRight(e.Bearing + 135);
+            SetAhead(300);
+        }
 
     }
 }
