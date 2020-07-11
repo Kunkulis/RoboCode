@@ -14,7 +14,7 @@ namespace ARE
 
         public override void Run()
         {
-            SetColors(Color.DarkOrange, Color.Black, Color.DimGray, Color.Firebrick, Color.WhiteSmoke);
+            SetColors(Color.DarkOrange, Color.Black, Color.DimGray, Color.Orange, Color.WhiteSmoke);
 
             double height = this.BattleFieldHeight;
             double width = this.BattleFieldWidth;
