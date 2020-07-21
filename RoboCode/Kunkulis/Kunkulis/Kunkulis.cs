@@ -9,37 +9,29 @@ namespace ARE
     public class Kunkulis : AdvancedRobot
     {
         double previousEnemyEnergy = 100;
-        double energyChange = 0.0;    
+        double energyChange = 0.0;
         double oldEnemyHeading;
-        int _direction = 1;       
+        int _direction = 1;
 
         public override void Run()
         {
             SetColors(Color.DarkOrange, Color.Black, Color.DimGray, Color.Orange, Color.WhiteSmoke);
-            
             while (true)
             {
                 TurnRadarRight(Double.PositiveInfinity);
             }
         }
 
-
         public override void OnScannedRobot(ScannedRobotEvent e)
-        { 
-            //SetTurnRight(e.Bearing + 90 - 30 * _direction);
-            energyChange = previousEnemyEnergy - e.Energy;
-            previousEnemyEnergy = e.Energy;
-
-            if (e.Distance <= 400)
+        {
+            if (e.Distance <= 250)
             {
-                Raming(e);
-                //SetTurnRight(e.Bearing - 90);
-                //SetBack(100);
+                Raming(e);                
             }
             else
             {
                 LinearTargeting(e);
-            }                       
+            }
         }
 
         public override void OnHitWall(HitWallEvent e)
@@ -50,31 +42,30 @@ namespace ARE
 
         public void Raming(ScannedRobotEvent e)
         {
-            int _direction = 1;
+            energyChange = previousEnemyEnergy - e.Energy;
+            previousEnemyEnergy = e.Energy;            
             double absBearing = e.BearingRadians + HeadingRadians;
             double turn = absBearing + Math.PI / 2;
             Random r = new Random();
-            double ran = r.NextDouble();
-
-            Console.WriteLine(ran);
+            double ran = r.NextDouble();            
             SetColors(Color.Red, Color.Red, Color.Red, Color.Red, Color.Red);
             double bulletPower = 3;
             double bulletSpeed = 20 - 3 * bulletPower;
             double bulletDamage = 4 * bulletPower;
             turn -= Math.Max(0.5, (1 / e.Distance) * 100) * _direction;
-            Console.WriteLine("turn={0}", turn);
-
+            
             SetTurnRightRadians(Utils.NormalRelativeAngle(turn - HeadingRadians));
 
             //This block of code detects when an opponents energy drops.
-            if (previousEnemyEnergy > (previousEnemyEnergy = e.Energy))
+            //Console.WriteLine("prevEnergy={0} e.Energy={1}", previousEnemyEnergy, e.Energy);
+            if (energyChange > 0 && energyChange <= 3)
             {
-                Console.WriteLine("Enemy energy drop");
+                Console.WriteLine("Enemy energy drop Ram");
                 //We use 300/e.getDistance() to decide if we want to change directions.
                 //This means that we will be less likely to reverse right as we are about to ram the enemy robot.
                 if (ran > 300 / e.Distance)
                 {
-                    Console.WriteLine("ran={0} division={1}", turn,(300/e.Distance));
+                    Console.WriteLine("ran={0} division={1}", turn, (300 / e.Distance));
                     _direction = -_direction;
                 }
             }
@@ -99,14 +90,11 @@ namespace ARE
             double predictedY = Y + e.Distance * Math.Cos(absBearing);
 
             while ((++deltaTime) * bulletSpeed < Math.Sqrt(Math.Pow((predictedX - X), 2) + Math.Pow((predictedY - Y), 2)))
-            {
-                Console.WriteLine("true");
-
+            { 
                 //Add the movement we think our enemy will make to our enemy's current X and Y
                 predictedX += Math.Sin(enemyHeading) * e.Velocity;
                 predictedY += Math.Cos(enemyHeading) * e.Velocity;
-
-
+                
                 //Find our enemy's heading changes.
                 enemyHeading += enemyHeadingChange;
 
@@ -114,22 +102,21 @@ namespace ARE
                 //that that is the closest they can get to the wall (Bots are non-rotating 36*36 squares).
                 predictedX = Math.Max(Math.Min(predictedX, BattleFieldWidth - 18), 18);
                 predictedY = Math.Max(Math.Min(predictedY, BattleFieldHeight - 18), 18);
-            }
-            Console.WriteLine("after while");
+            }            
             //Find the bearing of our predicted coordinates from us.
             double aim = Utils.NormalAbsoluteAngle(Math.Atan2(predictedX - X, predictedY - Y));
-            Console.WriteLine("aim={0}", aim);
+            
             //Aim and fire.
             SetTurnGunRightRadians(Utils.NormalRelativeAngle(aim - GunHeadingRadians));
             SetFire(bulletPower);
 
             SetTurnRadarRightRadians(Utils.NormalRelativeAngle(absBearing - RadarHeadingRadians) * 2);
-            
         }
 
         public void LinearTargeting(ScannedRobotEvent e)
         {
             SetColors(Color.Green, Color.Green, Color.Green, Color.Green, Color.Green);
+            SetTurnRight(e.Bearing + 90 - 30 * _direction);
             double bulletPower = Math.Min((400.00 / e.Distance), 3.00);
             double myX = X;
             double myY = Y;
@@ -164,19 +151,6 @@ namespace ARE
                 _direction = (e.Distance <= 300 && _direction < 0) ? _direction : -_direction;
                 SetAhead((e.Distance / 4 + 25) * _direction);
             }
-        }
-        public void onBulletHit(BulletHitEvent e)
-        {
-            double damage = e.Bullet.Power;
-            Console.WriteLine("damage={0}", damage);
-            previousEnemyEnergy -= damage;
-        }
-
-        public void onHitWall(HitWallEvent e)
-        {
-            _direction = -_direction;
-        }
-
+        }        
     }
-
 }
