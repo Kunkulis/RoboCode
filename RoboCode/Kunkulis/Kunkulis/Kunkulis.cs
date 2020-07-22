@@ -24,55 +24,44 @@ namespace ARE
 
         public override void OnScannedRobot(ScannedRobotEvent e)
         {
+            energyChange = previousEnemyEnergy - e.Energy;
+            previousEnemyEnergy = e.Energy;
+
             if (e.Distance <= 250)
             {
-                Raming(e);                
+                Raming(e);
             }
-            else
+            else if(e.Distance>250)
             {
                 LinearTargeting(e);
-            }
+            }            
         }
 
         public override void OnHitWall(HitWallEvent e)
         {
-            SetTurnRight(e.Bearing + 135);
-            SetAhead(200);
+            SetTurnRight(e.Bearing + 90);
+            SetAhead(50);
+            _direction = -_direction;           
         }
 
         public void Raming(ScannedRobotEvent e)
         {
-            energyChange = previousEnemyEnergy - e.Energy;
-            previousEnemyEnergy = e.Energy;            
             double absBearing = e.BearingRadians + HeadingRadians;
             double turn = absBearing + Math.PI / 2;
             Random r = new Random();
-            double ran = r.NextDouble();            
-            SetColors(Color.Red, Color.Red, Color.Red, Color.Red, Color.Red);
+            double ran = r.NextDouble();
+            SetColors(Color.Red, Color.Black, Color.DimGray, Color.Orange, Color.WhiteSmoke);
             double bulletPower = 3;
             double bulletSpeed = 20 - 3 * bulletPower;
             double bulletDamage = 4 * bulletPower;
             turn -= Math.Max(0.5, (1 / e.Distance) * 100) * _direction;
-            
-            SetTurnRightRadians(Utils.NormalRelativeAngle(turn - HeadingRadians));
 
-            //This block of code detects when an opponents energy drops.
-            //Console.WriteLine("prevEnergy={0} e.Energy={1}", previousEnemyEnergy, e.Energy);
-            if (energyChange > 0 && energyChange <= 3)
-            {
-                Console.WriteLine("Enemy energy drop Ram");
-                //We use 300/e.getDistance() to decide if we want to change directions.
-                //This means that we will be less likely to reverse right as we are about to ram the enemy robot.
-                if (ran > 300 / e.Distance)
-                {
-                    Console.WriteLine("ran={0} division={1}", turn, (300 / e.Distance));
-                    _direction = -_direction;
-                }
-            }
+            SetTurnRightRadians(Utils.NormalRelativeAngle(turn - HeadingRadians));
 
             //This line makes us slow down when we need to turn sharply.
 
             MaxVelocity = (400 / TurnRemaining);
+            Console.WriteLine("MaxVelocity={0}", 400 / TurnRemaining);
 
             SetAhead(100 * _direction);
 
@@ -86,15 +75,21 @@ namespace ARE
              *base code comes from the wiki.
             */
             double deltaTime = 0;
+            Console.WriteLine("deltaTime={0}", deltaTime);
             double predictedX = X + e.Distance * Math.Sin(absBearing);
+            Console.WriteLine("predictedX={0} X={1} + e.Distance={2} * Math.Sin(absBearing)={3} | absBearing={4}", predictedX, X, e.Distance, Math.Sin(absBearing), absBearing);
             double predictedY = Y + e.Distance * Math.Cos(absBearing);
+            Console.WriteLine("predictedY={0} Y={1} + e.Distance={2} * Math.Cos(absBearing)={3} | absBearing={4}", predictedY, Y, e.Distance, Math.Cos(absBearing), absBearing);
 
             while ((++deltaTime) * bulletSpeed < Math.Sqrt(Math.Pow((predictedX - X), 2) + Math.Pow((predictedY - Y), 2)))
-            { 
+            {
                 //Add the movement we think our enemy will make to our enemy's current X and Y
+                Console.WriteLine("deltaTime={0}*bulletSpeed={1}", deltaTime, bulletSpeed);
+                Console.WriteLine("Math.Sqrt(Math.Pow((predictedX - X), 2)={0} + Math.Pow((predictedY - Y), 2))={1} | X={2} Y={3}", Math.Pow((predictedX - X), 2), Math.Pow((predictedY - Y), 2), X, Y);
                 predictedX += Math.Sin(enemyHeading) * e.Velocity;
                 predictedY += Math.Cos(enemyHeading) * e.Velocity;
-                
+                Console.WriteLine("preX={0} preY={1}", predictedX, predictedY);
+
                 //Find our enemy's heading changes.
                 enemyHeading += enemyHeadingChange;
 
@@ -102,10 +97,10 @@ namespace ARE
                 //that that is the closest they can get to the wall (Bots are non-rotating 36*36 squares).
                 predictedX = Math.Max(Math.Min(predictedX, BattleFieldWidth - 18), 18);
                 predictedY = Math.Max(Math.Min(predictedY, BattleFieldHeight - 18), 18);
-            }            
+            }
             //Find the bearing of our predicted coordinates from us.
             double aim = Utils.NormalAbsoluteAngle(Math.Atan2(predictedX - X, predictedY - Y));
-            
+
             //Aim and fire.
             SetTurnGunRightRadians(Utils.NormalRelativeAngle(aim - GunHeadingRadians));
             SetFire(bulletPower);
@@ -115,7 +110,7 @@ namespace ARE
 
         public void LinearTargeting(ScannedRobotEvent e)
         {
-            SetColors(Color.Green, Color.Green, Color.Green, Color.Green, Color.Green);
+            SetColors(Color.Green, Color.Black, Color.DimGray, Color.Orange, Color.WhiteSmoke);
             SetTurnRight(e.Bearing + 90 - 30 * _direction);
             double bulletPower = Math.Min((400.00 / e.Distance), 3.00);
             double myX = X;
@@ -129,6 +124,11 @@ namespace ARE
             double battleFieldHeight = BattleFieldHeight,
                    battleFieldWidth = BattleFieldWidth;
             double enemyDistance = e.Distance;
+            if (energyChange > 0 && energyChange <= 3)
+            {
+                _direction = (e.Distance <= 300 && _direction < 0) ? _direction : -_direction;
+                SetAhead((e.Distance / 4 + 25) * _direction);
+            }
 
             while ((deltaTime++) * (20.0 - 3.0 * bulletPower) < Math.Sqrt(Math.Pow((eX - myX), 2) + Math.Pow((eY - myY), 2)))
             {
@@ -146,11 +146,16 @@ namespace ARE
             SetTurnGunRightRadians(Utils.NormalRelativeAngle(theta - GunHeadingRadians));
 
             Fire(bulletPower);
-            if (energyChange > 0 && energyChange <= 3)
-            {                
-                _direction = (e.Distance <= 300 && _direction < 0) ? _direction : -_direction;
-                SetAhead((e.Distance / 4 + 25) * _direction);
+        }
+
+        public override void OnWin(WinEvent e)
+        {
+            for (int i = 0; i < 50; i++)
+            {
+                TurnRight(30);
+                TurnLeft(30);
             }
-        }        
+        }
+
     }
 }
