@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace Day11
 {
-    class Program
+    static class Program
     {
         static void Main(string[] args)
         {
@@ -32,7 +32,8 @@ namespace Day11
                 layout.Add(row);
             }
             List<char[]> newLayout = new List<char[]>();
-            foreach (var item in data)
+
+            foreach (var item in layout)
             {
                 var row = item.ToArray();
                 newLayout.Add(row);
@@ -44,8 +45,9 @@ namespace Day11
                 (0,-1),(0,1),
                 (1,-1),(1,0),(1,1)
             };
-            bool doMatch = newLayout.All(layout.Contains);
-            int loops = 0;            
+            bool doMatch = GetMatch(newLayout, layout);
+
+            int loops = 0;
             do
             {
                 for (int i = 0; i < layout.Count; i++)
@@ -72,20 +74,21 @@ namespace Day11
                             }
                         }
                         else if (currentSeat.Equals('#'))
-                        {                            
+                        {
                             if (aroundSeat.Count(x => x == '#') >= 4)
                             {
                                 newLayout[i][j] = 'L';
                             }
-                        }                        
+                        }
                     }
                 }
-                doMatch = newLayout.All(layout.Contains);
+                doMatch = GetMatch(newLayout, layout);
                 if (!doMatch)
                 {
                     loops++;
-                    layout.Clear();                    
-                    layout = new List<char[]>(newLayout);                    
+                    layout.Clear();
+                    layout = newLayout.GetClone();
+
                 }
 
             } while (!doMatch);
@@ -95,14 +98,45 @@ namespace Day11
             {
                 for (int j = 0; j < newLayout[i].Count(); j++)
                 {
-                    if (newLayout[i][j]=='#')
+                    if (newLayout[i][j] == '#')
                     {
                         takenSeats++;
                     }
                 }
             }
             Console.WriteLine(takenSeats);
+            Console.ReadKey();
 
+        }
+
+        private static bool GetMatch(List<char[]> newLayout, List<char[]> layout)
+        {
+            int notMatching = 0;
+            for (int i = 0; i < newLayout.Count; i++)
+            {
+                for (int j = 0; j < newLayout[i].Count(); j++)
+                {
+                    if (newLayout[i][j] != layout[i][j])
+                    {
+                        notMatching++;
+                    }
+                }
+            }
+            if (notMatching > 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public static List<char[]> GetClone(this List<char[]> newLayout)
+        {
+            return newLayout.Select(item => (char[])item.Clone())
+                    .ToList();
         }
     }
 }
+
